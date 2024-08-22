@@ -80,11 +80,9 @@ def ingest_client_csv(server: Interface, file_path: str, mikrotik: bool = False)
     # write all the clients
 
     for hostname, config in client_configs.items():
-        with open(path.join(server_dir, 'clients', f'{hostname}.conf'), 'w') as client_file:
+        host_file = f'{hostname.replace(' ','_')}.conf'
+        with open(path.join(server_dir, 'clients', host_file), 'w') as client_file:
             client_file.write(str(config)) 
-
-
-
 
 
 if __name__ == '__main__':
