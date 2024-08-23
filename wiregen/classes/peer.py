@@ -56,7 +56,7 @@ class Peer:
 
         return '\n'.join(output)
     
-    def mikrotik(self, client: bool = True) -> str:
+    def mikrotik(self, client: bool = True, allow_all_ipv6: bool = True) -> str:
         """
         Renders the Mikrotik CLI command for this peer
         """
@@ -69,9 +69,10 @@ class Peer:
             output_str += f' {sub(r'(?<!^)(?=[A-Z])', '-', item).lower()}="{getattr(self,item)}"'
 
         # These attributes don't match exactly and need to be replaced
+        allowed = f'"{self.local_interface.Address},::/0"' if allow_all_ipv6 else f'"{self.local_interface.Address}"'
         if client is True:
             # This is a client and not another server
-            output_str += f' allowed-address="{self.local_interface.Address}"'
+            output_str += f' allowed-address={allowed}'
         else:    
             # This is to another server
             matching_map = {

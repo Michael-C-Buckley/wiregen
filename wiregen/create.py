@@ -6,6 +6,8 @@ from csv import reader
 from io import StringIO
 from os import path, makedirs
 
+from ipaddress import IPv4Address as IPv4, IPv4Network
+
 from wiregen.classes import ConfigFile, Interface, Peer
 from wiregen.common import generate_preshared_key
 
@@ -26,6 +28,13 @@ def ingest_client_csv(server: Interface, file_path: str, mikrotik: bool = False)
 
     server_endpoint = f'{server.Endpoint}:{server.ListenPort}'
 
+    # Create the WG address pool and remove the server from available hosts
+    address_pool = list(IPv4Network(server.Address, strict=False).hosts())
+    address_pool.remove(IPv4(server.Address.split('/')[0]))
+
+        
+
+
     # a script designed to be pasted into a Mirkotik CLI
     if mikrotik:
         mikrotik_script = server.mikrotik()
@@ -35,13 +44,13 @@ def ingest_client_csv(server: Interface, file_path: str, mikrotik: bool = False)
 
         preshared_key = generate_preshared_key()
 
-        wg_address = get_info('Interface Address')
+        # wg_address = get_info('Interface Address')
+        wg_address = str(address_pool.pop(0))
         hostname = get_info('Hostname')
 
         client = Interface(wg_address, hostname=hostname, interface_name=get_info('Interface Name'))
         
-        # server_allowed = f'{wg_address},::/0'
-        server_allowed = wg_address
+        server_allowed = f'{wg_address},::/0' if mikrotik else wg_address
 
         # Allow everything if nothing was specified
         if not (allowed := get_info('Allowed IPs')):
@@ -54,7 +63,7 @@ def ingest_client_csv(server: Interface, file_path: str, mikrotik: bool = False)
             mikrotik_script += f'\n{client_peer.mikrotik()}'
 
         # This Peer info is of the host for the remote server
-        server_peers.append(Peer(server, client, wg_address,
+        server_peers.append(Peer(server, client, server_allowed,
                                  preshared_key=preshared_key,
                                  name=hostname))
 
