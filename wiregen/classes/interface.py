@@ -89,7 +89,8 @@ class Interface:
 
         return '\n'.join(output)
     
-    def mikrotik(self, comment: str = None, disabled: bool = None) -> str:
+    def mikrotik(self, comment: str = None, disabled: bool = None,
+                 add_fw_rules: bool = True) -> str:
         """
         Renders the Mikrotik CLI command for this new tunnel
         """
@@ -117,5 +118,11 @@ class Interface:
 
         # Apply the address
         output_str += f'\n/ip/address/add interface={self.InterfaceName} address={self.Address}'
+
+        if add_fw_rules is True:
+            # Open the listening ports on IPv4 and IPv6 for Wireguard interface
+            common_fw_str = 'firewall/filter/add chain=input action=accept protocol=udp'
+            for proto in ['ip', 'ipv6']:
+                output_str += f'\n/{proto}/{common_fw_str} dst-port={self.ListenPort} comment="Wireguard {self.InterfaceName} Listen Port"'
 
         return output_str
