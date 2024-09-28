@@ -21,7 +21,7 @@ class Interface:
                  interface_name: Optional[str] = None,
                  private_key: Optional[str] = None,
                  public_key: Optional[str] = None,
-                 listen_port: int = 51820,
+                 listen_port: Optional[int] = 51820,
                  dns: Optional[str] = None,
                  table: Optional[int] = None,
                  mtu: Optional[int] = None,
@@ -51,7 +51,9 @@ class Interface:
         self.DNS = dns
         self.Table = table
 
-        if listen_port < 0 or listen_port > 65535:
+        if listen_port is None:
+            listen_port = 51820
+        elif listen_port < 0 or listen_port > 65535:
             raise ValueError(f'Invalid Listen Port: {listen_port}')
         elif listen_port < 1024:
             print(f'**WARNING: Listen port ({listen_port}) is in the well-known port range, it is suggested to use a port above 1024 or higher')
@@ -126,3 +128,18 @@ class Interface:
                 output_str += f'\n/{proto}/{common_fw_str} dst-port={self.ListenPort} comment="Wireguard {self.InterfaceName} Listen Port"'
 
         return output_str
+    
+    def vyos(self, wg_number: int = 0, description: str = None) -> str:
+        """
+        Renders the VyOS configuration commands for this interface
+        """
+
+        base = f'set interfaces wireguard wg{wg_number}'
+
+        config = f'{base} address {self.Address}'
+        if description is not None:
+            config += f'{base} description "{description}"'
+        config += f'{base} port {self.ListenPort}'
+        config += f'{base} private-key {self.PrivateKey}'
+
+        return config

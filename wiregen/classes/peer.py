@@ -1,4 +1,4 @@
-from re import sub
+from re import search, sub
 
 from wiregen.classes.interface import Interface
 
@@ -85,3 +85,28 @@ class Peer:
                     output_str += f' {v}="{value}"'
 
         return output_str
+    
+    def vyos(self, wg_number: int = 0, client: bool = True) -> str:
+        """
+        Renders the VyOS configuration commands for this peer
+        """
+        
+        config = ''
+        base = f'set interfaces wireguard wg{wg_number} peer "{self.Name}"'
+
+        if search(',', self.AllowedIPs):
+            allowed_list = self.AllowedIPs.split(',')
+
+            for ip in allowed_list:
+                config += f'{base} allowed-ips {ip}'
+        else:
+            config = f'{base} allowed-ips {self.AllowedIPs}\n'
+
+        if client is False:
+            config = f'{base} address {self.Endpoint}\n'
+        config += f'{base} description "{self.local_interface.Hostname}"'
+        config += f'{base} public-key {self.PublicKey}\n'
+        config += f'{base} preshared-key {self.PresharedKey}\n'
+
+        return config
+
